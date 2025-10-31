@@ -1,57 +1,88 @@
-contacts = {}
+from collections import UserDict
 
-# Parses user input into command and arguments
-def parse_input(user_input):
-    cmd, *args = user_input.split()
-    cmd = cmd.strip().lower()
-    return cmd, *args
-# Adds a new contact
-def add_contact(args, contacts):
-    name, phone = args
-    contacts[name.lower()] = phone
-    return "Contact added."
-# Changes an existing contact's phone number
-def change_contact(args, contacts):
-    name, phone = args
-    if name in contacts:
-        contacts[name.lower()] = phone
-        return "Contact updated."
-    else:
-        return "Contact not found."
-# Shows a contact's phone number
-def show_phone(args, contacts):
-    name = args[0].lower()
-    return contacts.get(name, "Contact not found.")
-# Shows all contacts
-def show_all(contacts):
-    if not contacts:
-        return "No contacts found."
-    result = []
-    for name, phone in contacts.items():
-        result.append(f"{name.capitalize()}: {phone}")
-    return "\n".join(result)
-# Main function to run the assistant bot
-def main():
-    print("Welcome to the assistant bot!")
-    while True:
-        user_input = input("Enter a command: ")
-        command, *args = parse_input(user_input)
+class Field:
+    def __init__(self, value):
+        self.value = value
 
-        if command in ["close", "exit"]:
-            print("Good bye!")
-            break
-        elif command in ["hello", "hi"]:
-            print("How can I help you?")
-        elif command == "add":
-            print(add_contact(args, contacts))
-        elif command == "change":
-            print(change_contact(args, contacts))
-        elif command == "phone":
-            print(show_phone(args, contacts))
-        elif command == "all":
-            print(show_all(contacts))
-        else:
-            print("Invalid command.")
+    def __str__(self):
+        return str(self.value)
 
-if __name__ == "__main__":
-    main()
+class Name(Field):
+		pass
+
+class Phone(Field):
+    def __init__(self, value):
+        if not value.isdigit() or len(value) != 10:
+            raise ValueError("Phone number must be exactly 10 digits and contain only numbers.")
+        super().__init__(value)
+
+class Record:
+    def __init__(self, name):
+        self.name = Name(name)
+        self.phones = []
+
+    def add_phone(self, phone):
+        self.phones.append(Phone(phone))
+
+    def edit_phone(self, old_phone, new_phone):
+        for key, phone in enumerate(self.phones):
+            if phone.value == old_phone:
+                self.phones[key] = Phone(new_phone)
+                return "Phone number updated."
+        return "Phone number not found."
+
+    def find_phone(self, phone):
+        for p in self.phones:
+            if p.value == phone:
+                return p.value
+        return "Phone number not found."
+
+
+    def __str__(self):
+        return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}"
+
+class AddressBook(UserDict):
+    def add_record(self, record):
+        self.data[record.name.value] = record
+
+    def delete(self, name):
+        if name in self.data:
+            del self.data[name]
+
+    def find(self, name):
+        return self.data.get(name)
+
+
+
+# Створення нової адресної книги
+book = AddressBook()
+
+# Створення запису для John
+john_record = Record("John")
+john_record.add_phone("1234567890")
+john_record.add_phone("5555555555")
+
+# Додавання запису John до адресної книги
+book.add_record(john_record)
+
+# Створення та додавання нового запису для Jane
+jane_record = Record("Jane")
+jane_record.add_phone("9876543210")
+book.add_record(jane_record)
+
+# Виведення всіх записів у книзі
+for name, record in book.data.items():
+    print(record)
+
+# Знаходження та редагування телефону для John
+john = book.find("John")
+john.edit_phone("1234567890", "1112223333")
+
+print(john)  # Виведення: Contact name: John, phones: 1112223333; 5555555555
+
+# Пошук конкретного телефону у записі John
+found_phone = john.find_phone("5555555555")
+print(f"{john.name}: {found_phone}")  # Виведення: 5555555555
+
+# Видалення запису Jane
+book.delete("Jane")
